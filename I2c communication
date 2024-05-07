@@ -1,0 +1,92 @@
+#include <LPC17XX.H>
+#include "GLCD.H"
+#define PCF8574P
+#define __FI 1
+#ifdef PCF8574AP
+#define U2 0x72
+#define U3 0x74
+#define U4 0x76
+#endif
+#ifdef PCF8574P
+#define U1 0x40
+#define U2 0x42
+#define U3 0x44
+#define U4 0x46
+#endif
+void I2CTransferByte(unsigned char, unsigned char);
+void delay(void);
+main()
+{
+// unsigned char i;
+LPC_SC->PCONP|=(1<<15);
+LPC_GPIO0->FIODIR = 3 << 27;
+LPC_PINCON-> PINSEL1 |=0x01400000;
+LPC_I2C0->I2SCLH = 0xC0;
+LPC_I2C0->I2SCLL = 0xC0;
+#define __USE_LCD
+#ifdef __USE_LCD
+GLCD_Init();
+GLCD_Clear(White);
+GLCD_SetBackColor(Blue);
+GLCD_SetTextColor(White);
+GLCD_DisplayString(0, 0, __FI, " ESA ");
+GLCD_DisplayString(1, 0, __FI, " Bangalore ");
+GLCD_DisplayString(2, 0, __FI, " www.esaindia.com ");
+GLCD_SetBackColor(White);
+GLCD_SetTextColor(Blue);
+
+GLCD_DisplayString(5, 0, __FI, " I2C 7 SEGMENT ");
+#endif
+while(1)
+{
+I2CTransferByte(U1,0xFF);
+I2CTransferByte(U2,0xFF);
+I2CTransferByte(U3,0xFF);
+I2CTransferByte(U4,0xFF);
+
+delay();
+
+I2CTransferByte(U4,0x86);
+delay();
+I2CTransferByte(U4,0x92);
+I2CTransferByte(U3,0x86);
+
+delay();
+
+I2CTransferByte(U4,0x88);
+I2CTransferByte(U3,0x92);
+I2CTransferByte(U2,0x86);
+delay();
+I2CTransferByte(U4,0xBF);
+
+I2CTransferByte(U3,0x88);
+I2CTransferByte(U2,0x92);
+I2CTransferByte(U1,0x86);
+
+delay();
+}
+}
+void I2CTransferByte(unsigned char Slv_Addr, unsigned char Data)
+{
+LPC_I2C0->I2CONSET = 0x40;
+LPC_I2C0->I2CONSET = 0x20;
+while((LPC_I2C0->I2STAT != 0x08));
+LPC_I2C0->I2CONCLR = 0x20;
+LPC_I2C0->I2DAT = Slv_Addr;
+
+LPC_I2C0->I2CONCLR = 0x08;
+while((LPC_I2C0->I2STAT != 0x18));
+LPC_I2C0->I2DAT = Data;
+LPC_I2C0->I2CONCLR = 0x08;
+while((LPC_I2C0->I2STAT != 0x28));
+
+LPC_I2C0->I2CONSET = 0x10;
+LPC_I2C0->I2CONCLR = 0x08;
+LPC_I2C0->I2CONCLR = 0x40;
+}
+void delay()
+{
+
+unsigned int j,i;
+for(i=0; i<200; i++)
+for(j=0x00; j<=9999; j++);
